@@ -2,13 +2,14 @@ package util;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.Scanner;
 
-public class UDPConnection extends Thread {
+public class UDPConnection {
 	private DatagramSocket socket;
 	private static UDPConnection instance;
+	private int destinationPort;
 
-	private UDPConnection() {
-	}
+	Scanner scanner = new Scanner(System.in);
 
 	public static UDPConnection getInstance() {
 		if (instance == null) {
@@ -17,32 +18,32 @@ public class UDPConnection extends Thread {
 		return instance;
 	}
 
-	public void setPort(int port) throws SocketException {
-		this.socket = new DatagramSocket(port);
+	public void setPorts(int connectionPort, int destinationPort) throws SocketException {
+		this.socket = new DatagramSocket(connectionPort);
+		this.destinationPort = destinationPort;
 	}
 
-	@Override
-	public void run() {
-		while (true) {
-			try {
-				DatagramPacket packet = new DatagramPacket(new byte[24], 24);
-				System.out.println("Waiting ....");
+	public synchronized void start() {
+		try {
+			boolean exit = false;
+			Receiver receiver = Receiver.getInstance();
+			receiver.setPort(this.socket);
 
-				this.socket.receive(packet);
+			receiver.start();
 
-				String msj = new String(packet.getData()).trim();
-				System.out.println(msj);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+			while (!exit) {
+				Sender sender = new Sender(this.socket, this.destinationPort);
+				String message = scanner.nextLine();
+				exit = message.equalsIgnoreCase("exit");
+				if (exit) {
+					receiver.setStop(true);
+					receiver.getSocket().close();
+				} else {
+					sender.sendMessage(message);
+				}
 			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 	}
-
-	public void sendDatagram(String msj, String destinationIp, int destinationPort) throws IOException {
-		InetAddress ipAddress = InetAddress.getByName(destinationIp);
-		DatagramPacket packet = new DatagramPacket(msj.getBytes(), msj.length(), ipAddress, destinationPort);
-
-		socket.send(packet);
-	}
-
 }
