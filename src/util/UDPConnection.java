@@ -8,6 +8,7 @@ public class UDPConnection {
 	private DatagramSocket socket;
 	private static UDPConnection instance;
 	private int destinationPort;
+	private String destinationIP;
 
 	Scanner scanner = new Scanner(System.in);
 
@@ -18,9 +19,10 @@ public class UDPConnection {
 		return instance;
 	}
 
-	public void setPorts(int connectionPort, int destinationPort) throws SocketException {
+	public void setPorts(String destinationIP, int connectionPort, int destinationPort) throws SocketException {
 		this.socket = new DatagramSocket(connectionPort);
 		this.destinationPort = destinationPort;
+		this.destinationIP = destinationIP;
 	}
 
 	public synchronized void start() {
@@ -32,7 +34,7 @@ public class UDPConnection {
 			receiver.start();
 
 			while (!exit) {
-				Sender sender = new Sender(this.socket, this.destinationPort);
+				Sender sender = new Sender(this.socket, this.destinationIP, this.destinationPort);
 				String message = scanner.nextLine();
 				exit = message.equalsIgnoreCase("exit");
 				if (exit) {
